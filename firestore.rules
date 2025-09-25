@@ -1,0 +1,101 @@
+/**
+ * @fileoverview Firestore Security Rules for Personal Knowledge Vault.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model where each user can only
+ * access their own data, specifically their profile and knowledge entries.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, where {userId} is the Firebase Auth UID.
+ * - /users/{userId}/knowledge_entries/{knowledgeEntryId}: Stores knowledge entries for each user.
+ *
+ * Key Security Decisions:
+ * - Users can only create, read, update, and delete their own knowledge entries.
+ * - Listing all users is disallowed.
+ * - The 'userId' in the path `/users/{userId}` must match the authenticated user's UID.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Rules for user profiles.
+     * @path /users/{userId}
+     * @allow (create) Authenticated user can create their own profile if the userId matches their auth UID.
+     * @deny (create) Creation is rejected if the userId does not match the auth UID.
+     * @allow (get) Authenticated user can read their own profile.
+     * @deny (get) Reading other user profiles is not allowed.
+     * @allow (update) Authenticated user can update their own profile.
+     * @deny (update) Updating other user profiles is not allowed.
+     * @allow (delete) Authenticated user can delete their own profile.
+     * @deny (delete) Deleting other user profiles is not allowed.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      // Allow the user to create their own profile, but only if the userId matches their auth.uid
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == request.auth.uid;
+
+      // Only the owner can read their profile
+      allow get: if isSignedIn() && isOwner(userId);
+
+      // Only the owner can list users (disabled)
+      allow list: if false;
+
+      // Only the owner can update their profile
+      allow update: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+
+      // Only the owner can delete their profile
+      allow delete: if isSignedIn() && isOwner(userId) && resource.data.id == userId;
+    }
+
+    /**
+     * @description Rules for knowledge entries under a user profile.
+     * @path /users/{userId}/knowledge_entries/{knowledgeEntryId}
+     * @allow (create) Authenticated user can create knowledge entries under their own profile.
+     * @deny (create) Creation is rejected if the userId does not match the auth UID.
+     * @allow (get) Authenticated user can read knowledge entries under their own profile.
+     * @deny (get) Reading knowledge entries under other user profiles is not allowed.
+     * @allow (update) Authenticated user can update knowledge entries under their own profile.
+     * @deny (update) Updating knowledge entries under other user profiles is not allowed.
+     * @allow (delete) Authenticated user can delete knowledge entries under their own profile.
+     * @deny (delete) Deleting knowledge entries under other user profiles is not allowed.
+     * @principle Enforces document ownership for all operations on knowledge entries.
+     */
+    match /users/{userId}/knowledge_entries/{knowledgeEntryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+      }
+
+      // Allow the user to create a knowledge entry, if the userId matches their auth.uid
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == request.auth.uid;
+
+      // Only the owner can read knowledge entries
+      allow get: if isSignedIn() && isOwner(userId);
+
+      // Only the owner can list knowledge entries
+      allow list: if isSignedIn() && isOwner(userId);
+
+      // Only the owner can update knowledge entries
+      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
+
+      // Only the owner can delete knowledge entries
+      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+    }
+  }
+}
