@@ -4,7 +4,6 @@ import { useUser } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import Logo from '@/components/layout/Logo';
@@ -41,19 +40,6 @@ export default function LoginPage() {
         </div>
 
         <LoginForm />
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div>
-        </div>
-
-        <GoogleSignInButton />
       </div>
     </div>
   );
