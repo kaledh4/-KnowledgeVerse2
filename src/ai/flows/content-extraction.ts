@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { fetchTranscript } from 'youtube-transcript-plus';
 
 const ExtractContentInputSchema = z.object({
   url: z.string().describe('The URL of the content to extract (e.g., YouTube video, X post).'),
@@ -40,7 +40,9 @@ const extractContentFlow = ai.defineFlow(
 
     if (isYouTube) {
       try {
-        const transcript = await YoutubeTranscript.fetchTranscript(input.url);
+        const transcript = await fetchTranscript(input.url, {
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
         const text = transcript.map((item) => item.text).join(' ');
         
         // For title, we need to make another request if possible or generate a fallback.
