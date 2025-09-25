@@ -3,7 +3,7 @@
 import { useUser } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import LoginForm from '@/components/auth/LoginForm';
+import { LoginForm } from '@/components/auth/LoginForm';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import Logo from '@/components/layout/Logo';
