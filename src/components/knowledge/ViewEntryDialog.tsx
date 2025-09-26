@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { FileText, Link as LinkIcon, ExternalLink, Copy } from 'lucide-react';
 import type { KnowledgeEntry, Tag } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type ViewEntryDialogProps = {
   isOpen: boolean;
@@ -40,11 +41,28 @@ const getTagClasses = (tag: Tag): string => {
 export default function ViewEntryDialog({ isOpen, setIsOpen, entry }: ViewEntryDialogProps) {
   const Icon = entry.contentType === 'TEXT' ? FileText : LinkIcon;
   const timeAgo = formatDistanceToNow(entry.createdAt, { addSuffix: true });
+  const { toast } = useToast();
+
+  const handleCopyContent = async () => {
+    try {
+      await navigator.clipboard.writeText(entry.textForEmbedding);
+      toast({
+        title: 'Content Copied',
+        description: 'The content has been copied to your clipboard.',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Copy Failed',
+        description: 'Could not copy content to clipboard.',
+      });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[625px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[800px] max-h-[80vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="font-headline text-2xl text-primary flex items-center gap-2">
             <Icon className="h-6 w-6" />
             {entry.title}
@@ -54,12 +72,23 @@ export default function ViewEntryDialog({ isOpen, setIsOpen, entry }: ViewEntryD
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {/* Content */}
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-foreground">Content</h4>
-            <div className="rounded-md border bg-muted/30 p-3">
-              <p className="text-sm text-foreground whitespace-pre-wrap">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-foreground">Content</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyContent}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-3 w-3" />
+                Copy
+              </Button>
+            </div>
+            <div className="rounded-md border bg-muted/30 p-4 max-h-96 overflow-y-auto">
+              <p className="text-sm text-foreground whitespace-pre-wrap select-text leading-relaxed">
                 {entry.textForEmbedding}
               </p>
             </div>
@@ -79,7 +108,7 @@ export default function ViewEntryDialog({ isOpen, setIsOpen, entry }: ViewEntryD
                   <ExternalLink className="h-3 w-3" />
                   Open Link
                 </Button>
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-xs text-muted-foreground truncate select-text">
                   {entry.url}
                 </span>
               </div>
