@@ -1,15 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import type { KnowledgeEntry } from '@/lib/types';
 import Header from '@/components/layout/Header';
 import KnowledgeList from './KnowledgeList';
 import EntryDialog from './EntryDialog';
 
 export default function KnowledgeVault() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<KnowledgeEntry[] | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleSearch = (results: KnowledgeEntry[] | null) => {
     setSearchResults(results);

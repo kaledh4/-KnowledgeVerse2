@@ -1,199 +1,156 @@
 # KnowledgeVerse
 
-A modern knowledge management system with AI-powered search capabilities, built with Next.js, Prisma, ChromaDB, and Model Context Protocol (MCP) integration.
+A modern knowledge management application built with Next.js, Supabase, and Prisma.
 
 ## Features
 
-- 📝 **Knowledge Entry Management**: Create, edit, and organize knowledge entries
-- 🔍 **Hybrid Search**: Combines vector similarity search with traditional text search
-- 🎥 **YouTube Integration**: Automatically extract transcripts from YouTube videos
-- 🐦 **X/Twitter Support**: Basic support for X/Twitter post links
-- 🤖 **MCP Integration**: Expose knowledge base as tools for LLM integration
-- 🎨 **Modern UI**: Beautiful, responsive interface built with Tailwind CSS
-- 📊 **Vector Storage**: ChromaDB integration for semantic search capabilities
+- 🔐 **Simple Authentication** - Email/password authentication with Supabase
+- 📚 **Knowledge Management** - Store and organize your knowledge entries
+- 🎨 **Modern UI** - Beautiful interface built with Tailwind CSS and Radix UI
+- 🚀 **Easy Deployment** - Ready for CapRover deployment on CloudCone
+- 🗄️ **PostgreSQL Database** - Powered by Supabase PostgreSQL
 
-## Tech Stack
-
-- **Frontend**: Next.js 15, React 18, Tailwind CSS
-- **Database**: SQLite with Prisma ORM
-- **Vector Database**: ChromaDB
-- **AI Integration**: OpenAI embeddings, MCP (Model Context Protocol)
-- **Content Extraction**: YouTube transcript API
-- **UI Components**: Radix UI primitives
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ 
-- Docker (for ChromaDB)
-- OpenAI API key (for embeddings)
+- Node.js 18 or later
+- A Supabase account and project
+- (Optional) CapRover instance for deployment
 
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd knowledgeverse
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your configuration:
-   ```env
-   DATABASE_URL="file:./dev.db"
-   CHROMADB_URL="http://localhost:8000"
-   OPENAI_API_KEY="your-openai-api-key-here"
-   ```
-
-4. **Start ChromaDB**
-   ```bash
-   docker-compose up -d chromadb
-   ```
-
-5. **Set up the database**
-   ```bash
-   npx prisma migrate dev --name init
-   ```
-
-6. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:3000`.
-
-## Usage
-
-### Adding Knowledge Entries
-
-1. Navigate to the application
-2. Click "Add Entry" 
-3. Choose content type:
-   - **Text**: Direct text input
-   - **YouTube Link**: Automatically extracts transcript
-   - **X/Twitter Link**: Basic link support
-4. Add title, content, and tags
-5. Save the entry
-
-### Searching Knowledge
-
-- Use the search bar to find entries
-- The system uses hybrid search combining:
-  - Vector similarity search (semantic understanding)
-  - Traditional text search (keyword matching)
-- Results are ranked by relevance and similarity
-
-### MCP Integration
-
-The knowledge base can be exposed as tools for LLM integration:
+### 1. Clone and Install
 
 ```bash
-npm run mcp-server
+git clone <your-repo-url>
+cd KnowledgeVerse
+npm install
 ```
 
-Available MCP tools:
-- `search_knowledge`: Search the knowledge base
-- `get_knowledge_entries`: List entries with pagination
-- `get_knowledge_entry`: Get specific entry by ID
-- `create_knowledge_entry`: Create new entries
-- `vector_search`: Semantic vector search
+### 2. Environment Setup
 
-## Development
+Copy the example environment file:
 
-### Database Schema
-
-The application uses a simple schema with one main table:
-
-```sql
-model KnowledgeEntry {
-  id               String   @id @default(cuid())
-  title            String
-  contentType      String   // 'TEXT' | 'YOUTUBE_LINK' | 'X_POST_LINK'
-  originalSource   String
-  textForEmbedding String
-  tags             String   // JSON string of tags array
-  chromaId         String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
+```bash
+cp .env.local.example .env.local
 ```
 
-### Project Structure
+Update `.env.local` with your Supabase credentials:
 
-```
-src/
-├── app/                 # Next.js app router
-├── components/          # React components
-│   ├── knowledge/       # Knowledge-specific components
-│   ├── layout/          # Layout components
-│   └── ui/              # Reusable UI components
-├── lib/                 # Utility libraries
-│   ├── chromadb.ts      # ChromaDB client
-│   ├── content-extraction.ts # Content extraction logic
-│   ├── knowledge-actions.ts  # Database operations
-│   ├── mcp-server.ts    # MCP server implementation
-│   ├── prisma.ts        # Prisma client
-│   ├── types.ts         # Type definitions
-│   └── vector-search.ts # Vector search service
-└── generated/           # Generated Prisma client
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Database Configuration
+DATABASE_URL="postgresql://postgres.your_ref:[YOUR-PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.your_ref:[YOUR-PASSWORD]@aws-1-eu-central-1.pooler.supabase.com:5432/postgres"
 ```
 
-### Adding New Content Types
+### 3. Database Setup
 
-1. Update the `contentType` enum in the Prisma schema
-2. Add extraction logic in `src/lib/content-extraction.ts`
-3. Update the UI components to handle the new type
-4. Run database migration: `npx prisma migrate dev`
+Generate the Prisma client and push the schema:
 
-## Deployment
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-### Vercel Deployment
+### 4. Run Development Server
 
-1. **Prepare for deployment**
-   ```bash
-   npm run build
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Supabase Setup
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to Settings > API to get your project URL and anon key
+3. Go to Settings > Database to get your connection strings
+4. The application will automatically create the required tables when you run `npx prisma db push`
+
+## Authentication
+
+The application uses Supabase Auth with email/password authentication:
+
+- Users can register with email and password
+- Simple login/logout functionality
+- Protected routes redirect to authentication page
+- User session management with React Context
+
+## Deployment with CapRover
+
+This application is configured for easy deployment with CapRover on CloudCone.
+
+### Prerequisites
+
+- CapRover instance running on CloudCone
+- Domain configured for your CapRover instance
+
+### Deployment Steps
+
+1. **Prepare your repository**: Ensure your code is in a Git repository
+
+2. **Create app in CapRover**:
+   - Log into your CapRover dashboard
+   - Create a new app (e.g., "knowledgeverse")
+   - Enable HTTPS if desired
+
+3. **Set environment variables** in CapRover:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   DATABASE_URL=your_database_connection_string
+   DIRECT_URL=your_direct_database_connection_string
    ```
 
-2. **Deploy to Vercel**
-   - Connect your GitHub repository to Vercel
-   - Set environment variables in Vercel dashboard
-   - Deploy automatically on push to main branch
+4. **Deploy**:
+   - Use CapRover's Git integration to connect your repository
+   - Or upload a tarball of your project
+   - CapRover will automatically build using the included `Dockerfile`
 
-3. **Database Options**
-   - **Development**: Local SQLite
-   - **Production**: Turso (SQLite cloud) or PostgreSQL
+### CapRover Configuration Files
 
-### ChromaDB Deployment
+- `captain-definition`: Tells CapRover to use Docker
+- `Dockerfile`: Multi-stage build optimized for production
+- `.dockerignore`: Excludes unnecessary files from Docker build
 
-For production, consider:
-- ChromaDB Cloud
-- Self-hosted ChromaDB on cloud providers
-- Alternative vector databases (Pinecone, Weaviate)
+## Project Structure
 
-## Contributing
+```
+├── src/
+│   ├── app/                 # Next.js app router pages
+│   ├── components/          # React components
+│   ├── contexts/           # React contexts (Auth)
+│   ├── lib/                # Utilities and configurations
+│   └── types/              # TypeScript type definitions
+├── prisma/
+│   └── schema.prisma       # Database schema
+├── captain-definition      # CapRover deployment config
+├── Dockerfile             # Docker configuration
+└── .dockerignore          # Docker ignore rules
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## Scripts
 
-## License
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npx prisma generate` - Generate Prisma client
+- `npx prisma db push` - Push schema to database
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## Technologies Used
 
-## Acknowledgments
+- **Framework**: Next.js 15 with App Router
+- **Database**: PostgreSQL (Supabase)
+- **ORM**: Prisma
+- **Authentication**: Supabase Auth
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **Deployment**: Docker + CapRover
 
-- [ChromaDB](https://www.trychroma.com/) for vector database capabilities
-- [Prisma](https://www.prisma.io/) for database ORM
-- [Model Context Protocol](https://modelcontextprotocol.io/) for LLM integration
-- [Radix UI](https://www.radix-ui.com/) for accessible UI components
+## Support
+
+For issues and questions, please check the documentation or create an issue in the repository.

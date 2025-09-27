@@ -11,6 +11,7 @@ export async function createKnowledgeEntry(data: {
   originalSource?: string;
   contentType: 'TEXT' | 'YOUTUBE_LINK' | 'X_POST_LINK';
   tags?: string[];
+  userId: string;
 }): Promise<KnowledgeEntry & { tags: Tag[] }> {
   let finalData = { ...data };
 
@@ -42,6 +43,7 @@ export async function createKnowledgeEntry(data: {
       originalSource: finalData.originalSource || '',
       contentType: finalData.contentType,
       tags: JSON.stringify(finalData.tags || []),
+      userId: finalData.userId,
     },
   });
 
@@ -55,6 +57,7 @@ export async function createKnowledgeEntry(data: {
         contentType: finalData.contentType,
         originalSource: finalData.originalSource || '',
         tags: finalData.tags || [],
+        userId: finalData.userId,
       }
     );
 
@@ -76,9 +79,11 @@ export async function createKnowledgeEntry(data: {
 
 export async function getKnowledgeEntries(
   limit: number = 20,
-  cursor?: string
+  cursor?: string,
+  userId?: string
 ): Promise<{ entries: (KnowledgeEntry & { tags: Tag[] })[]; nextCursor?: string }> {
   const entries = await prisma.knowledgeEntry.findMany({
+    where: userId ? { userId } : undefined,
     take: limit + 1,
     ...(cursor && {
       cursor: { id: cursor },
@@ -109,7 +114,8 @@ export async function updateKnowledgeEntry(
     textForEmbedding: string;
     tags: Tag[];
     chromaId: string;
-  }>
+  }>,
+  userId: string
 ): Promise<KnowledgeEntry & { tags: Tag[] }> {
   const updateData = { ...data };
   if (data.tags) {
@@ -117,7 +123,10 @@ export async function updateKnowledgeEntry(
   }
 
   const entry = await prisma.knowledgeEntry.update({
-    where: { id },
+    where: { 
+      id,
+      userId, // Ensure user can only update their own entries
+    },
     data: updateData,
   });
 
@@ -127,14 +136,21 @@ export async function updateKnowledgeEntry(
   };
 }
 
-export async function deleteKnowledgeEntry(id: string): Promise<void> {
-  // Get the entry to find its ChromaDB ID
+export async function deleteKnowledgeEntry(id: string, userId: string): Promise<void> {
+  // Get the entry to find its ChromaDB ID and verify ownership
   const entry = await prisma.knowledgeEntry.findUnique({
-    where: { id },
+    where: { 
+      id,
+      userId, // Ensure user can only delete their own entries
+    },
   });
 
+  if (!entry) {
+    throw new Error('Knowledge entry not found or access denied');
+  }
+
   // Delete from ChromaDB if it exists
-  if (entry?.chromaId) {
+  if (entry.chromaId) {
     try {
       await chromaService.deleteEntry(entry.chromaId);
     } catch (error) {
@@ -145,13 +161,19 @@ export async function deleteKnowledgeEntry(id: string): Promise<void> {
 
   // Delete from database
   await prisma.knowledgeEntry.delete({
-    where: { id },
+    where: { 
+      id,
+      userId, // Double-check user ownership
+    },
   });
 }
 
-export async function getKnowledgeEntry(id: string): Promise<(KnowledgeEntry & { tags: Tag[] }) | null> {
+export async function getKnowledgeEntry(id: string, userId: string): Promise<(KnowledgeEntry & { tags: Tag[] }) | null> {
   const entry = await prisma.knowledgeEntry.findUnique({
-    where: { id },
+    where: { 
+      id,
+      userId, // Ensure user can only access their own entries
+    },
   });
 
   if (!entry) return null;
@@ -162,8 +184,8 @@ export async function getKnowledgeEntry(id: string): Promise<(KnowledgeEntry & {
   };
 }
 
-export async function searchKnowledgeEntries(query: string): Promise<(KnowledgeEntry & { tags: Tag[] })[]> {
+export async function searchKnowledgeEntries(query: string, userId: string): Promise<(KnowledgeEntry & { tags: Tag[] })[]> {
   // Use hybrid search that combines vector and text search
-  const searchResults = await vectorSearchService.hybridSearch(query, 20);
+  const searchResults = await vectorSearchService.hybridSearch(query, 20, userId);
   return searchResults.map(result => result.entry);
 }

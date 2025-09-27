@@ -3,12 +3,12 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model KnowledgeEntry {
@@ -19,6 +19,7 @@ model KnowledgeEntry {
   textForEmbedding String
   tags             String   // JSON string of tags array
   chromaId         String?
+  userId           String   // This will reference Supabase auth.users.id
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

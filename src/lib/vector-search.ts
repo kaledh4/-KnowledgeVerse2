@@ -12,7 +12,8 @@ export interface SearchResult {
 export class VectorSearchService {
   async hybridSearch(
     query: string,
-    limit: number = 10
+    limit: number = 10,
+    userId?: string
   ): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
 
@@ -22,7 +23,10 @@ export class VectorSearchService {
       
       for (const result of vectorResults) {
         const entry = await prisma.knowledgeEntry.findUnique({
-          where: { id: result.id },
+          where: { 
+            id: result.id,
+            ...(userId && { userId })
+          },
         });
 
         if (entry) {
@@ -45,6 +49,7 @@ export class VectorSearchService {
     if (remainingLimit > 0) {
       const textResults = await prisma.knowledgeEntry.findMany({
         where: {
+          ...(userId && { userId }),
           OR: [
             { title: { contains: query } },
             { textForEmbedding: { contains: query } },
@@ -79,14 +84,17 @@ export class VectorSearchService {
     });
   }
 
-  async vectorSearch(query: string, limit: number = 10): Promise<SearchResult[]> {
+  async vectorSearch(query: string, limit: number = 10, userId?: string): Promise<SearchResult[]> {
     try {
       const vectorResults = await chromaService.searchSimilar(query, limit);
       const results: SearchResult[] = [];
 
       for (const result of vectorResults) {
         const entry = await prisma.knowledgeEntry.findUnique({
-          where: { id: result.id },
+          where: { 
+            id: result.id,
+            ...(userId && { userId })
+          },
         });
 
         if (entry) {

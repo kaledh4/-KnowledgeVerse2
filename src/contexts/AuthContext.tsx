@@ -1,81 +1,94 @@
-'use client';
+'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-}
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { supabase, type User } from '@/lib/supabase'
+import { AuthError, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
-  logout: () => void;
+  user: User | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
+  signUp: (email: string, password: string, name?: string) => Promise<{ error?: AuthError }>
+  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
-  }, []);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ? {
+        id: session.user.id,
+        email: session.user.email!,
+        user_metadata: session.user.user_metadata
+      } : null)
+      setLoading(false)
+    })
 
-  const login = async (email: string, password: string) => {
-    // Simple mock authentication - in a real app, this would call your API
-    const mockUser: User = {
-      id: '1',
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? {
+        id: session.user.id,
+        email: session.user.email!,
+        user_metadata: session.user.user_metadata
+      } : null)
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      name: email.split('@')[0]
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-  };
+      password,
+    })
+    return { error }
+  }
 
-  const register = async (email: string, password: string, name?: string) => {
-    // Simple mock registration - in a real app, this would call your API
-    const mockUser: User = {
-      id: '1',
+  const signUp = async (email: string, password: string, name?: string) => {
+    const { error } = await supabase.auth.signUp({
       email,
-      name: name || email.split('@')[0]
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-  };
+      password,
+      options: {
+        data: {
+          name: name || email.split('@')[0],
+        },
+      },
+    })
+    return { error }
+  }
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const value = {
+    user,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
-};
+  return context
+}
 
 export const useUser = () => {
-  const { user } = useAuth();
-  return { user, isUserLoading: false, userError: null };
-};
+  const { user, loading } = useAuth()
+  return { user, loading }
+}

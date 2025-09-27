@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKnowledgeEntry, updateKnowledgeEntry, deleteKnowledgeEntry } from '@/lib/knowledge-actions';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const entry = await getKnowledgeEntry(params.id);
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const entry = await getKnowledgeEntry(params.id, session.user.id);
     
     if (!entry) {
       return NextResponse.json(
@@ -30,6 +41,15 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { source, tags } = body;
 
@@ -54,7 +74,7 @@ export async function PUT(
         (source.includes('youtube.com') || source.includes('youtu.be') ? 'YOUTUBE_LINK' : 'X_POST_LINK') : 
         'TEXT',
       tags: tags,
-    });
+    }, session.user.id);
     
     return NextResponse.json(entry);
   } catch (error) {
@@ -71,7 +91,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await deleteKnowledgeEntry(params.id);
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    await deleteKnowledgeEntry(params.id, session.user.id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

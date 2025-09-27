@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKnowledgeEntries, createKnowledgeEntry } from '@/lib/knowledge-actions';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get('cursor') || undefined;
     const limit = parseInt(searchParams.get('limit') || '9');
 
-    const result = await getKnowledgeEntries(limit, cursor);
+    const result = await getKnowledgeEntries(limit, cursor, session.user.id);
     
     return NextResponse.json(result);
   } catch (error) {
@@ -21,6 +32,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { source, tags } = body;
 
@@ -45,6 +65,7 @@ export async function POST(request: NextRequest) {
         (source.includes('youtube.com') || source.includes('youtu.be') ? 'YOUTUBE_LINK' : 'X_POST_LINK') : 
         'TEXT',
       tags: tags,
+      userId: session.user.id,
     });
     
     return NextResponse.json(entry);
